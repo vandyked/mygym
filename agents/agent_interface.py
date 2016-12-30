@@ -1,9 +1,15 @@
 class AgentInterface(object):
-    def __init__(self, action_space):
-        self.action_space = action_space
-        self._setup()
-    def _setup(self, **kwargs):
-        pass
+    def __init__(self, env, config=None):
+        self.action_space = env.action_space
+        try:
+            if hasattr(env, 'state'):
+                self.state_space_shape = env.state.shape
+            elif hasattr(env, 'observation_space'):
+                self.state_space_shape = env.observation_space.shape
+        except:
+            exit("Failed to get state dimension from environment")
+
+
     def act(self, ob, reward, done):
         """ RandomAgent for interface
         :param ob:
@@ -12,9 +18,12 @@ class AgentInterface(object):
         :return:
         """
         return self.action_space.sample()
-    def setup(self, **kwargs):
-        pass
+
     def cleanup(self, **kwargs):
         pass
-    def training_step(self, **kwargs):
+
+    def start_episode(self):
+        pass
+
+    def end_episode(self, **kwargs):
         pass

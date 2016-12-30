@@ -1,10 +1,9 @@
-import logging
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
 from utils.rollout import setup_env
 from utils.rollout import teardown_env
 from utils.rollout import do_rollout
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 TRAINER = "trainer"
 
@@ -18,7 +17,6 @@ class Trainer(object):
         self.outdir = config.get(TRAINER, "outdir")
 
     def setup(self):
-        self.agent.setup()
         setup_env(self.env, self.outdir)
 
     def cleanup(self):
@@ -26,8 +24,8 @@ class Trainer(object):
         teardown_env(self.env)
 
     def train(self):
-        self.agent.setup()
-        for loopi in range(self.iterations):
-            total_rew, sars_tuples = do_rollout(self.env, self.agent, self.max_steps, self.render)
-            logger.debug("Episode: {} lasted: {}".format(loopi, len(sars_tuples)))
-            self.agent.training_step(total_rew, sars_tuples)
+        for loopNum in range(self.iterations):
+            self.agent.start_episode()
+            training_info = do_rollout(self.env, self.agent, self.max_steps, self.render)
+            logger.debug("Episode: {} lasted: {}".format(loopNum, len(training_info["sars_tuples"])))
+            self.agent.end_episode(**training_info)

@@ -1,24 +1,26 @@
+from agents.agent_interface import AgentInterface
+from agents.cem import CEMAgent
+import os
 import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-from agents.agent_interface import AgentInterface
-from agents.cem import CEMAgent
 
-def load_agent(agent_name, action_space):
+def load_agent(agent_name, env, config):
     if agent_name == AgentInterface.__name__:
         logger.debug("Loading AgentInterface/RandomAgent")
-        return AgentInterface(action_space)
+        return AgentInterface(env)
     elif agent_name == CEMAgent.__name__:
         logger.debug("Loading black box Cross-Entropy Agent")
-        return CEMAgent(action_space)
+        return CEMAgent(env, config)
     else:
         logger.error("No agent named: {}".format(agent_name))
+        exit()
 
 
 def setup_env(env, output_dir=None):
     if output_dir is None:
-        output_dir = 'output/' + env.__name__
+        output_dir = os.path.join(['outdir', env.__name__])
     logger.info("Start recording to: {}".format(output_dir))
     env.monitor.start(output_dir, force=True)
 
@@ -28,7 +30,7 @@ def teardown_env(env):
     env.monitor.close()
 
 
-def do_rollout(env, agent, num_steps, render=False):
+def do_rollout(env, agent, num_steps=10, render=False):
     """Generic function (modified from gym examples) that will work for most agent:
     :param agent:
     :param num_steps:
@@ -52,5 +54,6 @@ def do_rollout(env, agent, num_steps, render=False):
         total_rew += reward
         if render and t%3==0: env.render()
         if done: break
-    return total_rew, sars_tuples
+
+    return {"total_reward": total_rew, "sars_tuples": sars_tuples}
 
