@@ -4,6 +4,17 @@ My OpenAI gym
 
 Goals:
   1. enable plugging in my agents to gym environments
-  2. train
-  3. output statistics/plot
-  4. implement a range of basic algorithms (cf. John Schulmans slides)
+  2. save agents and reload
+  3. train:
+       implement a range of basic algorithms (cf. John Schulmans slides)
+        - CEM
+
+        
+        TODO 
+        - policy gradient
+        - dqn
+        - TRPO?
+        
+  4. output statistics/plot
+  5. solve environments:
+        - cartpole, mountaincar, pong ram, pong-pixel 
