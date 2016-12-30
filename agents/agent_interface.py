@@ -1,6 +1,7 @@
 class AgentInterface(object):
     def __init__(self, env, config=None):
         self.action_space = env.action_space
+        self.action_space_dim = self.action_space.n
         try:
             if hasattr(env, 'state'):
                 self.state_space_shape = env.state.shape
@@ -8,6 +9,10 @@ class AgentInterface(object):
                 self.state_space_shape = env.observation_space.shape
         except:
             exit("Failed to get state dimension from environment")
+        # dimension of state space:
+        self.state_space_dim = 1
+        for i in self.state_space_shape:
+            self.state_space_dim *= i
 
 
     def act(self, ob, reward, done):

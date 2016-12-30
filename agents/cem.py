@@ -21,12 +21,9 @@ class CEMAgent(AgentInterface):
         super(CEMAgent, self).__init__(env)
         self.population_size = config.getint("agent", "popsize")
         self.select_p = config.getfloat("agent", "p")
-        self.temp = config.getfloat("agent", "smtemp")
-        self.state_space_dim = 1
-        for i in self.state_space_shape:
-            self.state_space_dim *= i
+        self.temperature = config.getfloat("agent", "smtemp")
         # model softmax(Ax + b)
-        self.num_params = (self.state_space_dim + 1) * self.action_space.n
+        self.num_params = (self.state_space_dim + 1) * self.action_space_dim
         self.mean_params = np.zeros((self.num_params,))
         self._reset_parameter_population()
         self._reset_tracking_stats()
@@ -80,7 +77,7 @@ class CEMAgent(AgentInterface):
         pass
 
     def softmax(self, v):
-        v = v/self.temp
+        v = v/self.temperature
         ev = np.exp(v)
         dist = ev / np.sum(ev)
         return dist
