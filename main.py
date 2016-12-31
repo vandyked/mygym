@@ -3,7 +3,7 @@ import ConfigParser
 import argparse
 import logging
 
-from utils.rollout import load_agent
+from utils.load_agents import load_agent
 from utils.trainer import Trainer
 
 if __name__ == "__main__":

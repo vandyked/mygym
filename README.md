@@ -3,6 +3,7 @@ My OpenAI gym
 
 
 Goals:
+  0. train / run learnt agent 
   1. enable plugging in my agents to gym environments
   2. save agents and reload
   3. train:

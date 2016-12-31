@@ -1,5 +1,6 @@
 from agent_interface import AgentInterface
 import numpy as np
+from utils.constants import AGENT
 import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -9,6 +10,12 @@ class CEMAgent(AgentInterface):
     """
     Black box cross-entropy optimiser.
     Algorithm:
+        - parametric model f(state, theta) = action
+        - have a distribution over theta
+        - REPEAT until solution found:
+        -   sample a population of theta samples
+        -   evaluate each
+        -   recalculate theta distribution based on the top % of samples
 
     Notes:
         - MountainCar-v0 raised some issues. Is a lot of exploring until you get any kind of reward - here meaning
@@ -18,10 +25,10 @@ class CEMAgent(AgentInterface):
         """
         :param n: population size
         """
-        super(CEMAgent, self).__init__(env)
-        self.population_size = config.getint("agent", "popsize")
-        self.select_p = config.getfloat("agent", "p")
-        self.temperature = config.getfloat("agent", "smtemp")
+        super(CEMAgent, self).__init__(env, config=config)
+        self.population_size = config.getint(AGENT, "popsize")
+        self.select_p = config.getfloat(AGENT, "p")
+        self.temperature = config.getfloat(AGENT, "smtemp")
         # model softmax(Ax + b)
         self.num_params = (self.state_space_dim + 1) * self.action_space_dim
         self.mean_params = np.zeros((self.num_params,))

@@ -1,0 +1,2 @@
+AGENT = "agent"
+TRAINER = "trainer"
