@@ -1,14 +1,22 @@
 import ConfigParser
+from utils.constants import ENV, TRAINER
 from utils.constants import AGENT
+from utils.constants import MODEL_TRAINED
+from utils.constants import JSON
+from utils.constants import INI
+import json
+import os
 import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
 class AgentInterface(object):
-    def __init__(self, env, config=None):
+    def __init__(self, env, config):
+        self.config = config
         self.action_space = env.action_space
         self.action_space_dim = self.action_space.n
+        self.model_name = self._get_model_name(config)
         try:
             if hasattr(env, 'state'):
                 self.state_space_shape = env.state.shape
@@ -21,17 +29,29 @@ class AgentInterface(object):
         for i in self.state_space_shape:
             self.state_space_dim *= i
 
-        # optional arguments that are shared by some agents only:
-        self.epsilon = 1.0
-        self.epsilon_limit = 0.1
+        # Optional arguments that are shared by some agents only:
+        # -- These should effect learning only, such that a config and saved model should
+        # -- be enough to load and run a trained model
+        self.epsilon = 0.3
+        self.epsilon_limit = 0.0
         self.epsilon_decay_rate = 0.1
         self.train = True
         try:
+            self.train = config.getboolean(AGENT, "train")
             self.epsilon = config.getfloat(AGENT, "epsilon")
             self.epsilon_decay_rate = config.getfloat(AGENT, "epsilondecayrate")
-            self.train = config.getboolean(AGENT, "train")
         except ConfigParser.NoOptionError:
             logger.warning("Using some default config options")
+
+    @staticmethod
+    def _get_model_name(config):
+        env_name = config.get(ENV, "id")
+        try:
+            approximator_name = config.get(AGENT, "approximator")
+        except ConfigParser.NoOptionError:
+            approximator_name = "na"
+        agent_name = config.get(AGENT, "id")
+        return '_'.join([env_name, agent_name, approximator_name])
 
     def act(self, ob, reward, done):
         """ RandomAgent for interface
@@ -43,10 +63,33 @@ class AgentInterface(object):
         return self.action_space.sample()
 
     def cleanup(self, **kwargs):
-        pass
+        self._save_agent()
+
+    def load_agent(self):
+        load_name = self.config.get(AGENT, "loadname")
+        with open(load_name, 'r') as datafile:
+            return json.load(datafile)
+
+    def _save_agent(self):
+        if not self.train:
+            return
+        load_name = os.path.join(MODEL_TRAINED, self.model_name + JSON)
+        with open(load_name, 'w') as datafile:
+            json.dump(self._get_save_dict(), datafile)
+        self.config.set(AGENT, "loadname", load_name)
+        self.config.set(AGENT, "train", False)
+        self.config.set(AGENT, "epsilon", 0.0)
+        self.config.set(TRAINER, "render", True)
+        self.config.set(TRAINER, "iterations", 10 )
+        config_name = os.path.join(MODEL_TRAINED, self.model_name + INI)
+        with open(config_name, 'w') as cfg_file:
+            self.config.write(cfg_file)
 
     def start_episode(self):
         pass
 
     def end_episode(self, **kwargs):
+        pass
+
+    def _get_save_dict(self):
         pass

@@ -12,29 +12,35 @@ class Trainer(object):
         self.iterations = config.getint(TRAINER, "iterations")
         self.max_steps = config.getint(TRAINER, "maxsteps")
         self.render = config.getboolean(TRAINER, "render")
+        self.plot_frequency = config.getint(TRAINER, "plotevery")
         try:
             self.output_dir = config.get(TRAINER, "outdir")
         except:
             self.output_dir = os.path.join(['outdir', self.env.__name__])
+        self.episode_reward_history = []
 
     def setup(self):
-        logger.info("Start recording to: {}".format(self.output_dir))
-        self.env.monitor.start(self.output_dir, force=True)
+        if self.render:
+            logger.info("Start recording to: {}".format(self.output_dir))
+            self.env.monitor.start(self.output_dir, force=True)
 
     def cleanup(self):
         self.agent.cleanup()
-        logger.info("End recording. Successfully completed rollout")
-        self.env.monitor.close()
+        if self.render:
+            logger.info("End recording. Successfully completed rollout")
+            self.env.monitor.close()
 
     def train(self):
         for loopNum in range(self.iterations):
             self.agent.start_episode()
             training_info = self.do_rollout(self.max_steps, self.render)
-            logger.info("Episode: {}\n\tsteps: {}\ttotal_reward: {}".format(
+            logger.info("Episode: {}\tsteps: {}\ttotal_reward: {}".format(
                 loopNum,
                 len(training_info["sars_tuples"]),
                 training_info["total_reward"]))
             self.agent.end_episode(**training_info)
+            if self.plot_frequency and loopNum and loopNum % self.plot_frequency == 0:
+                self.plot_reward_history()
 
     def do_rollout(self, max_num_steps=10, render=False):
         """Generic function (modified from gym examples) that will work for most agent:
@@ -60,5 +66,13 @@ class Trainer(object):
             if render and t%3==0: self.env.render()
             if done: break
 
+        self.episode_reward_history.append(total_rew)
         return {"total_reward": total_rew, "sars_tuples": sars_tuples}
+
+    def plot_reward_history(self):
+        from utils.ploting import plot_data
+        plot_data(x_data=[range(len(self.episode_reward_history))],
+                  y_data=[self.episode_reward_history])
+
+
 

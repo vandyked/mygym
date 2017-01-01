@@ -1,3 +1,4 @@
+agents/checkpoints
 *.pyc
 .idea
 output/*

@@ -31,10 +31,14 @@ class CEMAgent(AgentInterface):
         self.temperature = config.getfloat(AGENT, "smtemp")
         # model softmax(Ax + b)
         self.num_params = (self.state_space_dim + 1) * self.action_space_dim
-        self.mean_params = np.zeros((self.num_params,))
-        self._reset_parameter_population()
-        self._reset_tracking_stats()
-        self.generation = 0
+        if self.train:
+            self.mean_params = np.zeros((self.num_params,))
+            self._reset_parameter_population()
+            self._reset_tracking_stats()
+            self.generation = 0
+        else:
+            param_dict = self.load_agent()
+            self.mean_params = np.asarray(param_dict["mean"])
 
     def _reset_tracking_stats(self):
         self.param_evaluations = np.zeros(self.population_size)
@@ -46,9 +50,8 @@ class CEMAgent(AgentInterface):
                                                     cov=np.identity(self.num_params),
                                                     size=(self.population_size,))
 
-    def _param_vec_to_dict(self, index):
+    def _param_vec_to_dict(self, vec):
         params = {}
-        vec = self.params[index, :]
         params["b"] = vec[:self.action_space.n]
         params["A"] = np.reshape(vec[self.action_space.n:], (self.action_space.n, self.state_space_dim))
         return params
@@ -70,18 +73,19 @@ class CEMAgent(AgentInterface):
         self.generation += 1
 
     def start_episode(self):
-        self.episode_param_index += 1
-        if self.episode_param_index == self.population_size:
-            self._learning_step()
-        self.episode_params = self._param_vec_to_dict(self.episode_param_index)
+        if self.train:
+            self.episode_param_index += 1
+            if self.episode_param_index == self.population_size:
+                self._learning_step()
+            vec = self.params[self.episode_param_index, :]
+            self.episode_params = self._param_vec_to_dict(vec)
+        else:
+            self.episode_params = self._param_vec_to_dict(self.mean_params)
 
     def act(self, ob, reward, done):
         logits = np.inner(self.episode_params["A"], ob) + self.episode_params["b"]
         action_distribution = self.softmax(logits)
         return np.argmax(action_distribution)
-
-    def cleanup(self):
-        pass
 
     def softmax(self, v):
         v = v/self.temperature
@@ -90,4 +94,9 @@ class CEMAgent(AgentInterface):
         return dist
 
     def end_episode(self, **kwargs):
-        self.param_evaluations[self.episode_param_index] = kwargs["total_reward"]
+        if self.train:
+            self.param_evaluations[self.episode_param_index] = kwargs["total_reward"]
+
+    def _get_save_dict(self):
+        return {"mean": self.mean_params.tolist()}
+

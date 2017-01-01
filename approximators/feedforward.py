@@ -1,7 +1,11 @@
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Activation
+from keras.callbacks import ModelCheckpoint
+from keras.utils.visualize_util import plot
 from utils.constants import AGENT
+from utils.constants import HDF5
+from utils.constants import PNG
 import numpy as np
 
 
@@ -49,7 +53,15 @@ class FeedForwardNet(object):
         return self.model.predict(x=x_batch.reshape(batch_size, x_batch.size),
                                   batch_size=batch_size)
 
-    def train(self, x_batch, y_batch, batch_size):
+    def train(self, x_batch, y_batch, batch_size, model_name):
+        checkpointer = ModelCheckpoint(filepath=model_name + HDF5,
+                                            verbose=0,
+                                            save_best_only=True)
         self.model.fit(x=x_batch,
                        y=y_batch,
-                       batch_size=batch_size)
+                       batch_size=batch_size,
+                       callbacks=[checkpointer],
+                       verbose=0)
+
+    def plot_model(self, model_name):
+        plot(model=self.model, to_file=model_name + PNG, show_shapes=True, show_layer_names=True)

@@ -24,6 +24,8 @@ if __name__ == "__main__":
 
     env = gym.make(env_name)
     agent = load_agent(agent_name, env, config)
+
+    # TODO one-of: load/train agent
     trainer = Trainer(config, agent, env)
     trainer.setup()
     trainer.train()

@@ -1,6 +1,7 @@
 from agent_interface import AgentInterface
 from utils.load_approximators import load_approximator
-from utils.constants import AGENT
+from utils.constants import AGENT, HDF5, MODEL_CHECKPOINTS
+import os
 import numpy as np
 from copy import copy
 import logging
@@ -13,10 +14,10 @@ class ReplayMemory(object):
         self.buffer = []
         self.buffer_limit = buffer_limit
 
+    def is_buffer_full(self):
+        return len(self.buffer) >= self.buffer_limit    # only start learning once buffer is full
+
     def sample(self, batch_size=16):
-        if len(self.buffer) < self.buffer_limit:
-            # only start learning once buffer is full
-            return None
         sample_indices = np.random.choice(range(len(self.buffer)),
                                           size=batch_size,
                                           replace=False)
@@ -46,6 +47,7 @@ class DQNAgent(AgentInterface):
         self.batch_size = config.getint(AGENT, "batchsize")
         self.target_update_rate = config.getint(AGENT, "targetupdaterate")
         self.gamma = config.getfloat(AGENT, "gamma")
+        self.updates_per_learning_step = config.getint(AGENT, "updatesperstep")
 
         self.Q_model = load_approximator(approximator_name,
                                          config=config,
@@ -66,35 +68,40 @@ class DQNAgent(AgentInterface):
                                      high=self.action_space_dim)
         return np.argmax(actions_values)
 
-    def _get_targets(self, batch):
+    def _get_targets(self):
+        batch = self.replay_memory.sample(batch_size=self.batch_size)
         q_targets = []
         states = []
         for sars in batch:
             s, a, r, sprime, done = tuple(sars)  # unpack
-            tar_i = self.Q_model.predict(s)  # prediction from current net
-            tar_i.flatten()[a] = r
+            tar_i = self.Q_model.predict(s).flatten()  # prediction from current net
+            tar_i[a] = r
             if not done:
                 action_values = self.target_model.predict(sprime)   # prediction from target net
-                tar_i.flatten()[a] += self.gamma * np.max(action_values)
+                tar_i[a] += self.gamma * np.max(action_values)
             q_targets.append(tar_i)
             states.append(s)
         return np.asarray(states), np.squeeze(np.asarray(q_targets))
 
-    def _learn(self, sars_tuples):
-        self.replay_memory.add(sars_tuples)
-        batch = self.replay_memory.sample(batch_size=self.batch_size)
-        if batch is None:
-            return
+    def _update_learning_parameters(self):
         self.learning_steps += 1
+        self.Q_model.plot_model(self.model_name)
         if self.learning_steps % self.target_update_rate == 0:
             self._copy_target_network()
             self.epsilon = np.minimum(self.epsilon * self.epsilon_decay_rate,
                                       self.epsilon_limit)
 
-        x_batch, y_batch = self._get_targets(batch)
-        self.Q_model.train(x_batch=x_batch,
-                           y_batch=y_batch,
-                           batch_size=self.batch_size)
+    def _learn(self, sars_tuples):
+        self.replay_memory.add(sars_tuples)
+        if not self.replay_memory.is_buffer_full():
+            return
+        logger.info("Learning step: {}".format(self.learning_steps))
+        self._update_learning_parameters()
+        for i in range(self.updates_per_learning_step):
+            x_batch, y_batch = self._get_targets()
+            checkpoint_name = os.path.join(MODEL_CHECKPOINTS, self.model_name + HDF5)
+            self.Q_model.train(x_batch=x_batch, y_batch=y_batch,
+                               batch_size=self.batch_size, model_name=checkpoint_name)
 
     def end_episode(self, **kwargs):
         self._learn(kwargs["sars_tuples"])
