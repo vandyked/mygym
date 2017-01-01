@@ -28,6 +28,7 @@ class CEMAgent(AgentInterface):
         super(CEMAgent, self).__init__(env, config=config)
         self.population_size = config.getint(AGENT, "popsize")
         self.select_p = config.getfloat(AGENT, "p")
+        self.sigma = config.getfloat(AGENT, "sigma")
         self.temperature = config.getfloat(AGENT, "smtemp")
         # model softmax(Ax + b)
         self.num_params = (self.state_space_dim + 1) * self.action_space_dim
@@ -47,7 +48,7 @@ class CEMAgent(AgentInterface):
 
     def _reset_parameter_population(self):
         self.params = np.random.multivariate_normal(mean=self.mean_params,
-                                                    cov=np.identity(self.num_params),
+                                                    cov=self.sigma * np.identity(self.num_params),
                                                     size=(self.population_size,))
 
     def _param_vec_to_dict(self, vec):
@@ -84,8 +85,9 @@ class CEMAgent(AgentInterface):
 
     def act(self, ob, reward, done):
         logits = np.inner(self.episode_params["A"], ob) + self.episode_params["b"]
-        action_distribution = self.softmax(logits)
-        return np.argmax(action_distribution)
+        return np.argmax(logits)  # normalising is not necessary unless sampling
+        #action_distribution = self.softmax(logits)
+        #return np.argmax(action_distribution)
 
     def softmax(self, v):
         v = v/self.temperature

@@ -12,7 +12,10 @@ class Trainer(object):
         self.iterations = config.getint(TRAINER, "iterations")
         self.max_steps = config.getint(TRAINER, "maxsteps")
         self.render = config.getboolean(TRAINER, "render")
-        self.plot_frequency = config.getint(TRAINER, "plotevery")
+        self.plot_frequency = 0
+        self.render_rate = 1
+        if config.has_option(TRAINER, "plotevery"):
+            self.plot_frequency = config.getint(TRAINER, "plotevery")
         try:
             self.output_dir = config.get(TRAINER, "outdir")
         except:
@@ -63,7 +66,7 @@ class Trainer(object):
             current_tuple += [reward, ob, done]
             sars_tuples.append(tuple(current_tuple))
             total_rew += reward
-            if render and t%3==0: self.env.render()
+            if render and t%self.render_rate==0: self.env.render()
             if done: break
 
         self.episode_reward_history.append(total_rew)

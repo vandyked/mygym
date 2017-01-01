@@ -1,6 +1,7 @@
 from agents.agent_interface import AgentInterface
 from agents.cem import CEMAgent
 from agents.policygradient import PolicyGradientAgent
+from agents.human import HumanAgent
 from agents.dqn import DQNAgent
 
 
@@ -22,6 +23,9 @@ def load_agent(agent_name, env, config):
     elif agent_name == DQNAgent.__name__:
         logger.debug("Loading Deep Q-leaning Agent")
         return DQNAgent(env, config=config)
+    elif agent_name == HumanAgent.__name__:
+        logger.debug("Loading Human Agent")
+        return HumanAgent(env, config=config)
     else:
         logger.error("No agent named: {}".format(agent_name))
         exit()
