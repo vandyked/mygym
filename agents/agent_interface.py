@@ -1,6 +1,8 @@
 import ConfigParser
-
 from utils.constants import AGENT
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 class AgentInterface(object):
@@ -20,14 +22,16 @@ class AgentInterface(object):
             self.state_space_dim *= i
 
         # optional arguments that are shared by some agents only:
+        self.epsilon = 1.0
+        self.epsilon_limit = 0.1
+        self.epsilon_decay_rate = 0.1
+        self.train = True
         try:
             self.epsilon = config.getfloat(AGENT, "epsilon")
-        except ConfigParser.NoOptionError:
-            pass
-        try:
+            self.epsilon_decay_rate = config.getfloat(AGENT, "epsilondecayrate")
             self.train = config.getboolean(AGENT, "train")
         except ConfigParser.NoOptionError:
-            self.train = True
+            logger.warning("Using some default config options")
 
     def act(self, ob, reward, done):
         """ RandomAgent for interface

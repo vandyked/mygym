@@ -49,7 +49,7 @@ class FeedForwardNet(object):
         return self.model.predict(x=x_batch.reshape(batch_size, x_batch.size),
                                   batch_size=batch_size)
 
-    def train(self, x_batch, y_batch, batch_size=1):
+    def train(self, x_batch, y_batch, batch_size):
         self.model.fit(x=x_batch,
                        y=y_batch,
                        batch_size=batch_size)

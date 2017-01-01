@@ -30,7 +30,10 @@ class Trainer(object):
         for loopNum in range(self.iterations):
             self.agent.start_episode()
             training_info = self.do_rollout(self.max_steps, self.render)
-            logger.debug("Episode: {} lasted: {}".format(loopNum, len(training_info["sars_tuples"])))
+            logger.info("Episode: {}\n\tsteps: {}\ttotal_reward: {}".format(
+                loopNum,
+                len(training_info["sars_tuples"]),
+                training_info["total_reward"]))
             self.agent.end_episode(**training_info)
 
     def do_rollout(self, max_num_steps=10, render=False):

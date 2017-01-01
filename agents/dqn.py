@@ -3,6 +3,9 @@ from utils.load_approximators import load_approximator
 from utils.constants import AGENT
 import numpy as np
 from copy import copy
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 class ReplayMemory(object):
@@ -17,12 +20,12 @@ class ReplayMemory(object):
         sample_indices = np.random.choice(range(len(self.buffer)),
                                           size=batch_size,
                                           replace=False)
-        return self.buffer[sample_indices]
+        return np.asarray(self.buffer)[sample_indices]
 
     def add(self, sars_tuples):
-        self.buffer.append(sars_tuples)
+        self.buffer += sars_tuples
         if len(self.buffer) > self.buffer_limit:
-            self.buffer = self.buffer[len(sars_tuples):]
+            self.buffer = self.buffer[-self.buffer_limit:]
 
 
 class DQNAgent(AgentInterface):
@@ -67,15 +70,15 @@ class DQNAgent(AgentInterface):
         q_targets = []
         states = []
         for sars in batch:
-            s, a, r, sprime, done = sars  # unpack
+            s, a, r, sprime, done = tuple(sars)  # unpack
             tar_i = self.Q_model.predict(s)  # prediction from current net
-            tar_i[a] = r
+            tar_i.flatten()[a] = r
             if not done:
                 action_values = self.target_model.predict(sprime)   # prediction from target net
-                tar_i[a] += self.gamma * np.max(action_values)
+                tar_i.flatten()[a] += self.gamma * np.max(action_values)
             q_targets.append(tar_i)
             states.append(s)
-        return states, q_targets
+        return np.asarray(states), np.squeeze(np.asarray(q_targets))
 
     def _learn(self, sars_tuples):
         self.replay_memory.add(sars_tuples)
@@ -85,12 +88,13 @@ class DQNAgent(AgentInterface):
         self.learning_steps += 1
         if self.learning_steps % self.target_update_rate == 0:
             self._copy_target_network()
+            self.epsilon = np.minimum(self.epsilon * self.epsilon_decay_rate,
+                                      self.epsilon_limit)
+
         x_batch, y_batch = self._get_targets(batch)
         self.Q_model.train(x_batch=x_batch,
-                           y_batch=y_batch)
-
-    def start_episode(self):
-        pass
+                           y_batch=y_batch,
+                           batch_size=self.batch_size)
 
     def end_episode(self, **kwargs):
         self._learn(kwargs["sars_tuples"])
