@@ -32,16 +32,19 @@ class AgentInterface(object):
         # Optional arguments that are shared by some agents only:
         # -- These should effect learning only, such that a config and saved model should
         # -- be enough to load and run a trained model
-        self.epsilon = 0.3
-        self.epsilon_limit = 0.0
-        self.epsilon_decay_rate = 0.1
-        self.train = True
+        self.epsilon_limit = 0.1
+        try:
+            self.epsilon = config.getfloat(AGENT, "epsilon")
+        except:
+            self.epsilon = 0.5
+        try:
+            self.epsilon_decay_rate = 0.9
+        except:
+            self.epsilon_decay_rate = config.getfloat(AGENT, "epsilondecayrate")
         try:
             self.train = config.getboolean(AGENT, "train")
-            self.epsilon = config.getfloat(AGENT, "epsilon")
-            self.epsilon_decay_rate = config.getfloat(AGENT, "epsilondecayrate")
-        except ConfigParser.NoOptionError:
-            logger.warning("Using some default config options")
+        except:
+            self.train = True
 
     @staticmethod
     def _get_model_name(config):
@@ -64,6 +67,7 @@ class AgentInterface(object):
 
     def cleanup(self, **kwargs):
         self._save_agent()
+        self._save_config()
 
     def load_agent(self):
         load_name = self.config.get(AGENT, "loadname")
@@ -71,16 +75,20 @@ class AgentInterface(object):
             return json.load(datafile)
 
     def _save_agent(self):
+        """ Override this if model doesn't suit being dumped to json. Must set self.load_name
+        """
         if not self.train:
             return
-        load_name = os.path.join(MODEL_TRAINED, self.model_name + JSON)
-        with open(load_name, 'w') as datafile:
+        self.load_name = os.path.join(MODEL_TRAINED, self.model_name + JSON)
+        with open(self.load_name, 'w') as datafile:
             json.dump(self._get_save_dict(), datafile)
-        self.config.set(AGENT, "loadname", load_name)
+
+    def _save_config(self):
+        self.config.set(AGENT, "loadname", self.load_name)
         self.config.set(AGENT, "train", False)
         self.config.set(AGENT, "epsilon", 0.0)
         self.config.set(TRAINER, "render", True)
-        self.config.set(TRAINER, "iterations", 10 )
+        self.config.set(TRAINER, "iterations", 10)
         config_name = os.path.join(MODEL_TRAINED, self.model_name + INI)
         with open(config_name, 'w') as cfg_file:
             self.config.write(cfg_file)

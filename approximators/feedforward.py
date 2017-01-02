@@ -32,9 +32,7 @@ class FeedForwardNet(object):
                 self.model.add(Dense(output_dim=self.layer_sizes[layer_i + 1],
                                      input_dim=self.layer_sizes[layer_i],
                                      activation=Activation(hidden_activations)))
-
-        self.model.compile(optimizer=optimiser,
-                           loss=loss)
+        self.model.compile(optimizer=optimiser, loss=loss)
 
     def _set_layer_sizes(self):
         """
@@ -64,4 +62,4 @@ class FeedForwardNet(object):
                        verbose=0)
 
     def plot_model(self, model_name):
-        plot(model=self.model, to_file=model_name + PNG, show_shapes=True, show_layer_names=True)
+        plot(model=self.model, to_file=model_name, show_shapes=True, show_layer_names=True)

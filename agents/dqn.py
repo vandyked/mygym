@@ -1,6 +1,6 @@
 from agent_interface import AgentInterface
 from utils.load_approximators import load_approximator
-from utils.constants import AGENT, HDF5, MODEL_CHECKPOINTS
+from utils.constants import AGENT, HDF5, MODEL_CHECKPOINTS, MODEL_TRAINED, PNG
 import os
 import numpy as np
 from copy import copy
@@ -53,10 +53,16 @@ class DQNAgent(AgentInterface):
                                          config=config,
                                          inputDim=self.state_space_dim,
                                          outputDim=self.action_space_dim)
-        self.target_model = None # until first change over
-        self.replay_memory = ReplayMemory(buffer_limit)
-        self._copy_target_network()
-        self.learning_steps = 0
+        if self.train:
+            self.Q_model.plot_model(os.path.join(MODEL_CHECKPOINTS, self.model_name + PNG))
+            self.target_model = None  # until first change over
+            self.replay_memory = ReplayMemory(buffer_limit)
+            self._copy_target_network()
+            self.learning_steps = 0
+        else:
+            load_name = config.get(AGENT, "loadname")
+            logger.info("Loading trained weights from: {}".format(load_name))
+            self.Q_model.model.load_weights(filepath=load_name, by_name=False)
 
     def _copy_target_network(self):
         self.target_model = copy(self.Q_model)
@@ -85,7 +91,6 @@ class DQNAgent(AgentInterface):
 
     def _update_learning_parameters(self):
         self.learning_steps += 1
-        self.Q_model.plot_model(self.model_name)
         if self.learning_steps % self.target_update_rate == 0:
             self._copy_target_network()
             self.epsilon = np.minimum(self.epsilon * self.epsilon_decay_rate,
@@ -104,4 +109,9 @@ class DQNAgent(AgentInterface):
                                batch_size=self.batch_size, model_name=checkpoint_name)
 
     def end_episode(self, **kwargs):
-        self._learn(kwargs["sars_tuples"])
+        if self.train:
+            self._learn(kwargs["sars_tuples"])
+
+    def _save_agent(self):
+        self.load_name = os.path.join(MODEL_TRAINED, self.model_name + HDF5)
+        self.Q_model.model.save_weights(self.load_name, overwrite=True)
