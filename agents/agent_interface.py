@@ -56,8 +56,9 @@ class AgentInterface(object):
         return self.action_space.sample()
 
     def cleanup(self, **kwargs):
-        self._save_agent()
-        self._save_config()
+        if self.train:
+            self._save_agent()
+            self._save_config()
 
     def load_agent(self):
         load_name = self.config.get(AGENT, "loadname")

@@ -55,7 +55,6 @@ class DQNAgent(AgentInterface):
                                          outputDim=self.action_space_dim)
         if self.train:
             self.Q_model.plot_model(os.path.join(MODEL_CHECKPOINTS, self.model_name + PNG))
-            self.target_model = None  # until first change over
             self.replay_memory = ReplayMemory(buffer_limit)
             self._copy_target_network()
             self.learning_steps = 0
@@ -64,15 +63,19 @@ class DQNAgent(AgentInterface):
             logger.info("Loading trained weights from: {}".format(load_name))
             self.Q_model.model.load_weights(filepath=load_name, by_name=False)
 
-    def _copy_target_network(self):
-        self.target_model = copy(self.Q_model)
-
     def act(self, ob, reward, done):
         actions_values = self.Q_model.predict(ob)
         if self.train and np.random.random() < self.epsilon:
             return np.random.randint(low=0,
                                      high=self.action_space_dim)
         return np.argmax(actions_values)
+
+    def end_episode(self, **kwargs):
+        if self.train:
+            self._learn(kwargs["sars_tuples"])
+
+    def _copy_target_network(self):
+        self.target_model = copy(self.Q_model)
 
     def _get_targets(self):
         batch = self.replay_memory.sample(batch_size=self.batch_size)
@@ -105,12 +108,8 @@ class DQNAgent(AgentInterface):
         for i in range(self.updates_per_learning_step):
             x_batch, y_batch = self._get_targets()
             checkpoint_name = os.path.join(MODEL_CHECKPOINTS, self.model_name + HDF5)
-            self.Q_model.run(x_batch=x_batch, y_batch=y_batch,
-                             batch_size=self.batch_size, model_name=checkpoint_name)
-
-    def end_episode(self, **kwargs):
-        if self.train:
-            self._learn(kwargs["sars_tuples"])
+            self.Q_model.train(x_batch=x_batch, y_batch=y_batch,
+                               batch_size=self.batch_size, model_name=checkpoint_name)
 
     def _save_agent(self):
         self.load_name = os.path.join(MODEL_TRAINED, self.model_name + HDF5)
