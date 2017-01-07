@@ -105,8 +105,8 @@ class DQNAgent(AgentInterface):
         for i in range(self.updates_per_learning_step):
             x_batch, y_batch = self._get_targets()
             checkpoint_name = os.path.join(MODEL_CHECKPOINTS, self.model_name + HDF5)
-            self.Q_model.train(x_batch=x_batch, y_batch=y_batch,
-                               batch_size=self.batch_size, model_name=checkpoint_name)
+            self.Q_model.run(x_batch=x_batch, y_batch=y_batch,
+                             batch_size=self.batch_size, model_name=checkpoint_name)
 
     def end_episode(self, **kwargs):
         if self.train:

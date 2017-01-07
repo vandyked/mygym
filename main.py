@@ -4,7 +4,7 @@ import argparse
 import logging
 
 from utils.load_agents import load_agent
-from utils.trainer import Trainer
+from utils.runner import Runner
 
 if __name__ == "__main__":
     logger = logging.getLogger()
@@ -25,11 +25,10 @@ if __name__ == "__main__":
     env = gym.make(env_name)
     agent = load_agent(agent_name, env, config)
 
-    # TODO one-of: load/train agent
-    trainer = Trainer(config, agent, env)
-    trainer.setup()
-    trainer.train()
-    trainer.cleanup()
+    runner = Runner(config, agent, env)
+    runner.setup()
+    runner.run()
+    runner.cleanup()
 
 
 

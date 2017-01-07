@@ -23,7 +23,8 @@ class CEMAgent(AgentInterface):
     """
     def __init__(self, env, config):
         """
-        :param n: population size
+        :param env:
+        :param config:
         """
         super(CEMAgent, self).__init__(env, config=config)
         self.population_size = config.getint(AGENT, "popsize")
@@ -40,11 +41,37 @@ class CEMAgent(AgentInterface):
         else:
             param_dict = self.load_agent()
             self.mean_params = np.asarray(param_dict["mean"])
+            self.episode_params = self._param_vec_to_dict(self.mean_params)
+
+    def start_episode(self):
+        if self.train:
+            vec = self.params[self.episode_param_index, :]
+            self.episode_params = self._param_vec_to_dict(vec)
+
+    def act(self, ob, reward, done):
+        logits = np.inner(self.episode_params["A"], ob) + self.episode_params["b"]
+        return np.argmax(logits)
+        # normalising is not necessary unless sampling
+        #action_distribution = self.softmax(logits)
+        #return np.argmax(action_distribution)
+
+    def softmax(self, v):
+        v = v/self.temperature
+        ev = np.exp(v)
+        dist = ev / np.sum(ev)
+        return dist
+
+    def end_episode(self, **kwargs):
+        if self.train:
+            self.param_evaluations[self.episode_param_index] = kwargs["total_reward"]
+            self.episode_param_index += 1
+            if self.episode_param_index == self.population_size:
+                self._learning_step()
 
     def _reset_tracking_stats(self):
         self.param_evaluations = np.zeros(self.population_size)
         self.param_evaluations.fill(np.nan)
-        self.episode_param_index = -1
+        self.episode_param_index = 0
 
     def _reset_parameter_population(self):
         self.params = np.random.multivariate_normal(mean=self.mean_params,
@@ -72,32 +99,6 @@ class CEMAgent(AgentInterface):
         # reset state stats:
         self._reset_tracking_stats()
         self.generation += 1
-
-    def start_episode(self):
-        if self.train:
-            self.episode_param_index += 1
-            if self.episode_param_index == self.population_size:
-                self._learning_step()
-            vec = self.params[self.episode_param_index, :]
-            self.episode_params = self._param_vec_to_dict(vec)
-        else:
-            self.episode_params = self._param_vec_to_dict(self.mean_params)
-
-    def act(self, ob, reward, done):
-        logits = np.inner(self.episode_params["A"], ob) + self.episode_params["b"]
-        return np.argmax(logits)  # normalising is not necessary unless sampling
-        #action_distribution = self.softmax(logits)
-        #return np.argmax(action_distribution)
-
-    def softmax(self, v):
-        v = v/self.temperature
-        ev = np.exp(v)
-        dist = ev / np.sum(ev)
-        return dist
-
-    def end_episode(self, **kwargs):
-        if self.train:
-            self.param_evaluations[self.episode_param_index] = kwargs["total_reward"]
 
     def _get_save_dict(self):
         return {"mean": self.mean_params.tolist()}

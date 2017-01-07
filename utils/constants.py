@@ -10,6 +10,6 @@ JSON = ".json"
 INI = ".ini"
 
 # paths
-MODEL_CHECKPOINTS= "agents/checkpoints/"
+MODEL_CHECKPOINTS = "agents/checkpoints/"
 MODEL_TRAINED = "agents/trained/"
 

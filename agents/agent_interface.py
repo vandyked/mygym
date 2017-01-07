@@ -46,16 +46,6 @@ class AgentInterface(object):
         except:
             self.train = True
 
-    @staticmethod
-    def _get_model_name(config):
-        env_name = config.get(ENV, "id")
-        try:
-            approximator_name = config.get(AGENT, "approximator")
-        except ConfigParser.NoOptionError:
-            approximator_name = "na"
-        agent_name = config.get(AGENT, "id")
-        return '_'.join([env_name, agent_name, approximator_name])
-
     def act(self, ob, reward, done):
         """ RandomAgent for interface
         :param ob:
@@ -73,6 +63,12 @@ class AgentInterface(object):
         load_name = self.config.get(AGENT, "loadname")
         with open(load_name, 'r') as datafile:
             return json.load(datafile)
+
+    def start_episode(self):
+        pass
+
+    def end_episode(self, **kwargs):
+        pass
 
     def _save_agent(self):
         """ Override this if model doesn't suit being dumped to json. Must set self.load_name
@@ -93,11 +89,15 @@ class AgentInterface(object):
         with open(config_name, 'w') as cfg_file:
             self.config.write(cfg_file)
 
-    def start_episode(self):
-        pass
-
-    def end_episode(self, **kwargs):
-        pass
+    @staticmethod
+    def _get_model_name(config):
+        env_name = config.get(ENV, "id")
+        try:
+            approximator_name = config.get(AGENT, "approximator")
+        except ConfigParser.NoOptionError:
+            approximator_name = "na"
+        agent_name = config.get(AGENT, "id")
+        return '_'.join([env_name, agent_name, approximator_name])
 
     def _get_save_dict(self):
         pass

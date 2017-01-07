@@ -5,7 +5,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-class Trainer(object):
+class Runner(object):
     def __init__(self, config, agent, env):
         self.agent = agent
         self.env = env
@@ -33,7 +33,7 @@ class Trainer(object):
             logger.info("End recording. Successfully completed rollout")
             self.env.monitor.close()
 
-    def train(self):
+    def run(self):
         for loopNum in range(self.iterations):
             self.agent.start_episode()
             training_info = self.do_rollout(self.max_steps, self.render)
